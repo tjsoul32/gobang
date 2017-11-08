@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 
-const N = 19
+const N = 7
 
 function Square(props) {
   return (
@@ -19,7 +19,6 @@ function Reset(props) {
   )
 }
 
-
 class Board extends React.Component {
   constructor() {
     super()
@@ -31,6 +30,8 @@ class Board extends React.Component {
       xIsNext: true,
       over: false,
       wins: [],
+      history: [],
+      clkBtn: [],
     }
   }
 
@@ -41,6 +42,8 @@ class Board extends React.Component {
       squares: Array(this.state.order * this.state.order).fill(null),
       xIsNext: true,
       over: false,
+      history: [],
+      clkBtn: [],
     })    
   }
 
@@ -81,7 +84,6 @@ class Board extends React.Component {
         blocks.push(block0.map((item) => {return item + i + order*j}) )
       }
     }
-    console.log(blocks)
     let wins = blocks.length > 0 ? blocks.map((block) => {return this.winItem(block)})
                                          .reduce((pre, cur) => {return pre.concat(cur)}) : []
     return wins
@@ -143,14 +145,21 @@ class Board extends React.Component {
 
   handleClick(i) {
     let squ_new = this.state.squares.slice()
+    let nh = this.state.history.slice()
+    let cb = this.state.clkBtn.slice()
+    nh.push(squ_new)
+
     if (squ_new[i] || this.state.over) {
       return
     }
 
     squ_new[i] = this.state.xIsNext ? 'X' : 'O'
+    cb.push([i, squ_new[i]])
     this.setState({
       squares: squ_new,
-      xIsNext: !this.state.xIsNext
+      xIsNext: !this.state.xIsNext,
+      history: nh,
+      clkBtn: cb,
     })
 
     let res = this.isWin(squ_new)
@@ -173,9 +182,23 @@ class Board extends React.Component {
     return s
   }
 
+  recover(index) {
+    let now = this.state.history[index]
+    let next = this.state.clkBtn[index][1] === 'X' ? 'O' : 'X'
+    let xIsNext = next === 'X' ? true : false
+
+    this.setState({
+      winlist: [],
+      msg: 'Next player: ' + next,
+      squares: now,
+      xIsNext: xIsNext,
+      over: false,
+    })
+  }
+
   render() {
     let sideLength = this.state.order
-    let list = () => {
+    let Rows = () => {
       let res = []
       for (let i = 0; i< sideLength; i++) {
         res.push(<div className="board-row" key={i}>   
@@ -185,11 +208,23 @@ class Board extends React.Component {
       return res
     }
 
+    let Bts = () => {
+      let res = this.state.history.length > 0 && this.state.winlist.length === 0 ? this.state.history.map((h, index) => {
+        return (<p key={index}>
+                  <button onClick={this.recover.bind(this, index)}>
+                    第{index + 1}步: {this.state.clkBtn[index][1]} {parseInt(this.state.clkBtn[index][0]/this.state.order, 10)+1}行 {(this.state.clkBtn[index][0] % this.state.order) +1}列
+                  </button>
+                </p>)
+      }) : null
+      return res
+    } 
+
     return (
       <div>
         <Reset Clk={() => this.reset()}/>
         <div className="status">{this.state.msg}</div>
-          {list()}
+          {Rows()}
+          {Bts()}
       </div>
     );
   }
