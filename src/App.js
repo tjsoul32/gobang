@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 
-const N = 7
+const N = 15
 
 function Square(props) {
   return (
