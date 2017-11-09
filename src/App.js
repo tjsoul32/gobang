@@ -20,9 +20,10 @@ function Reset(props) {
 }
 
 function Reverse(props) {
+  let odr = props.reverse ? "↑" : "↓"
   return (
     <button onClick={props.Clk}>
-      reverse
+      reverse {odr}
     </button>
   )
 }
@@ -33,6 +34,7 @@ class Board extends React.Component {
     super()
     this.state = {
       winlist: [],
+      loselist: [],
       order: N,
       msg: 'Next player: X',
       squares: [],
@@ -47,6 +49,7 @@ class Board extends React.Component {
   reset() {
     this.setState({
       winlist: [],
+      loselist: [],
       msg: 'Next player: X',
       squares: Array(this.state.order * this.state.order).fill(null),
       xIsNext: true,
@@ -134,8 +137,45 @@ class Board extends React.Component {
     if (status === 0 && list_x.length + list_o.length === (this.state.order * this.state.order)) {
       status = 9
     }
+
+    status = this.isOverline(list_x) ? 3 : status
+
     return status
   } 
+
+  isOverline(list_x) {
+    let lose = []
+    let res = false
+    var tmparray = new Array(6).fill(0)
+    for (let x of list_x) {
+      let s_r = 1
+      let s_l = 1
+      let s_c = 1
+      for (let i = 1; i< 6; i++) {
+        s_r = this.state.squares[x + i] === 'X' ? s_r : 0
+        s_l = this.state.squares[x + i * this.state.order] === 'X' ? s_l : 0
+        s_c = this.state.squares[x + i + i * this.state.order] === 'X' ? s_c : 0
+      }
+      if (s_r > 0) {
+        tmparray.forEach((v, i) => {lose.push(x + i)})
+        res = true
+        this.setState({loselist: lose})
+      }
+      if (s_l > 0) {
+        tmparray.forEach((v, i) => {lose.push(x + i * this.state.order)})
+        res = true
+        this.setState({loselist: lose})
+      }
+      if (s_c > 0) {
+        tmparray.forEach((v, i) => {lose.push(x + i + i * this.state.order)})
+        res = true
+        this.setState({loselist: lose})
+      }
+    }
+
+    return res
+  }
+
 
   isSubset(array_a, array_b) {
     for (let i of array_a) {
@@ -150,7 +190,7 @@ class Board extends React.Component {
     return (
       <Square 
         val = {this.state.squares[i]} 
-        color = {this.state.winlist.indexOf(i) > -1 ? 'red' : 'white'}
+        color = {this.state.loselist.indexOf(i) > -1 ? 'red' : ( this.state.winlist.indexOf(i) > -1 ? 'green' : 'white')}
         Clk = {() => this.handleClick(i)}
         key = {i}
       />
@@ -171,18 +211,22 @@ class Board extends React.Component {
       squares: squ_new,
       xIsNext: !this.state.xIsNext,
       history: his,
-    })
+    },() => {
+      let res = this.isWin(squ_new)
 
-    let res = this.isWin(squ_new)
-    if (res === 1 || res === 2) {
-      this.setState({over: true})
-      let winner = res === 1 ? 'X' : 'O'
-      this.setState({msg: 'winner is ' + winner}) 
-    } else if (res === 0) {
-      this.setState({msg: 'Next player: ' + (!this.state.xIsNext ? 'X' : 'O')})
-    } else if (res === 9) {
-      this.setState({msg: 'dogfall!!'})
-    }    
+      if (res === 1 || res === 2) {
+        this.setState({over: true})
+        let winner = res === 1 ? 'X' : 'O'
+        this.setState({msg: 'Winner is ' + winner}) 
+      } else if (res === 3) {
+        this.setState({over: true})
+        this.setState({msg: 'Forbidden moves, winner is O'})
+      } else if (res === 0) {
+        this.setState({msg: 'Next player: ' + (!this.state.xIsNext ? 'X' : 'O')})
+      } else if (res === 9) {
+        this.setState({msg: 'Dogfall!!'})
+      }    
+    })
   }
 
   genRow(sideLength, i) {
@@ -206,6 +250,7 @@ class Board extends React.Component {
 
     this.setState({
       winlist: [],
+      loselist: [],
       msg: 'Next player: ' + next,
       squares: now,
       xIsNext: xIsNext,
@@ -229,11 +274,11 @@ class Board extends React.Component {
     let Bts = () => {
       let len = this.state.history.length
       let reverse = this.state.reverse
-      let res = len > 0 && this.state.winlist.length === 0 ? this.state.history.map((h, index) => {
+      let res = len > 0 && this.state.winlist.length === 0 && this.state.loselist.length === 0 ? this.state.history.map((h, index) => {
         let idx = reverse ? len - index - 1 : index
         return (<p key={idx}>
                   <button onClick={this.recover.bind(this, idx)}>
-                    第{idx + 1}步: {this.state.history[idx][1]} {parseInt(this.state.history[idx][0]/this.state.order, 10)+1}行 {(this.state.history[idx][0] % this.state.order) +1}列
+                    第{idx + 1}步: {this.state.history[idx][1]} {parseInt(this.state.history[idx][0]/this.state.order, 10) + 1}行 {(this.state.history[idx][0] % this.state.order) + 1}列
                   </button>
                 </p>)
       }) : null
@@ -248,7 +293,7 @@ class Board extends React.Component {
           {Rows()}
         </div>
         <div className="game-info">
-          <Reverse Clk={() => this.reverse()}/>
+          <Reverse Clk={() => this.reverse()} reverse={this.state.reverse}/>
           {Bts()}
         </div>
       </div>
