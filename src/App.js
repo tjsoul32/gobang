@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 
-const N = 15
+const N = 19
 
 function Square(props) {
   return (
@@ -19,6 +19,15 @@ function Reset(props) {
   )
 }
 
+function Reverse(props) {
+  return (
+    <button onClick={props.Clk}>
+      reverse
+    </button>
+  )
+}
+
+
 class Board extends React.Component {
   constructor() {
     super()
@@ -31,7 +40,7 @@ class Board extends React.Component {
       over: false,
       wins: [],
       history: [],
-      clkBtn: [],
+      reverse: true,
     }
   }
 
@@ -43,8 +52,13 @@ class Board extends React.Component {
       xIsNext: true,
       over: false,
       history: [],
-      clkBtn: [],
     })    
+  }
+
+  reverse() {
+    this.setState({
+      reverse: !this.state.reverse
+    })
   }
 
   winItem(block) {
@@ -145,21 +159,18 @@ class Board extends React.Component {
 
   handleClick(i) {
     let squ_new = this.state.squares.slice()
-    let nh = this.state.history.slice()
-    let cb = this.state.clkBtn.slice()
-    nh.push(squ_new)
+    let his = this.state.history.slice()
 
     if (squ_new[i] || this.state.over) {
       return
     }
 
     squ_new[i] = this.state.xIsNext ? 'X' : 'O'
-    cb.push([i, squ_new[i]])
+    his.push([i, squ_new[i]])
     this.setState({
       squares: squ_new,
       xIsNext: !this.state.xIsNext,
-      history: nh,
-      clkBtn: cb,
+      history: his,
     })
 
     let res = this.isWin(squ_new)
@@ -183,9 +194,15 @@ class Board extends React.Component {
   }
 
   recover(index) {
-    let now = this.state.history[index]
-    let next = this.state.clkBtn[index][1] === 'X' ? 'O' : 'X'
+    let now = Array(this.state.order * this.state.order).fill(null)
+    let history = this.state.history.slice()
+    for (let i = 0; i<= index; i++){
+      now[history[i][0]] = history[i][1]
+    }
+    
+    let next = history[index][1] === 'X' ? 'O' : 'X'
     let xIsNext = next === 'X' ? true : false
+    let historyNow = history.slice(0, index + 1)
 
     this.setState({
       winlist: [],
@@ -193,6 +210,7 @@ class Board extends React.Component {
       squares: now,
       xIsNext: xIsNext,
       over: false,
+      history: historyNow,
     })
   }
 
@@ -209,10 +227,13 @@ class Board extends React.Component {
     }
 
     let Bts = () => {
-      let res = this.state.history.length > 0 && this.state.winlist.length === 0 ? this.state.history.map((h, index) => {
-        return (<p key={index}>
-                  <button onClick={this.recover.bind(this, index)}>
-                    第{index + 1}步: {this.state.clkBtn[index][1]} {parseInt(this.state.clkBtn[index][0]/this.state.order, 10)+1}行 {(this.state.clkBtn[index][0] % this.state.order) +1}列
+      let len = this.state.history.length
+      let reverse = this.state.reverse
+      let res = len > 0 && this.state.winlist.length === 0 ? this.state.history.map((h, index) => {
+        let idx = reverse ? len - index - 1 : index
+        return (<p key={idx}>
+                  <button onClick={this.recover.bind(this, idx)}>
+                    第{idx + 1}步: {this.state.history[idx][1]} {parseInt(this.state.history[idx][0]/this.state.order, 10)+1}行 {(this.state.history[idx][0] % this.state.order) +1}列
                   </button>
                 </p>)
       }) : null
@@ -221,10 +242,15 @@ class Board extends React.Component {
 
     return (
       <div>
-        <Reset Clk={() => this.reset()}/>
-        <div className="status">{this.state.msg}</div>
+        <div className="game-board">
+          <Reset Clk={() => this.reset()}/>
+          <div className="status">{this.state.msg}</div>
           {Rows()}
+        </div>
+        <div className="game-info">
+          <Reverse Clk={() => this.reverse()}/>
           {Bts()}
+        </div>
       </div>
     );
   }
@@ -235,13 +261,7 @@ class Game extends React.Component {
   render() {
     return (
       <div className="game">
-        <div className="game-board">
           <Board />
-        </div>
-        <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
-        </div>
       </div>
     );
   }
