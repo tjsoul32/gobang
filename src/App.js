@@ -222,7 +222,7 @@ class Board extends React.Component {
         this.setState({over: true})
         this.setState({msg: 'Forbidden moves, winner is O'})
       } else if (res === 0) {
-        this.setState({msg: 'Next player: ' + (!this.state.xIsNext ? 'X' : 'O')})
+        this.setState({msg: 'Next player: ' + (this.state.xIsNext ? 'X' : 'O')})
       } else if (res === 9) {
         this.setState({msg: 'Dogfall!!'})
       }    
